@@ -23,25 +23,36 @@ OPT = -O2 -g
 CFLAGS	= $(THREADS) $(OPT) $(W) $(XCFLAGS)
 LDLIBS	=
 SOLIBS	=
-prefix	= /usr/local
+DESTDIR = ../../../
+prefix	= out/x$(CPUx)
 
 ########################################################################
 
 IHDRS	= lmdb.h
-ILIBS	= liblmdb.a liblmdb.so
+ILIBS	= liblmdb.a liblmdb.dll
 IPROGS	= mdb_stat mdb_copy mdb_dump mdb_load
 IDOCS	= mdb_stat.1 mdb_copy.1 mdb_dump.1 mdb_load.1
 PROGS	= $(IPROGS) mtest mtest2 mtest3 mtest4 mtest5
 all:	$(ILIBS) $(PROGS)
 
 install: $(ILIBS) $(IPROGS) $(IHDRS)
-	for f in $(IPROGS); do cp $$f $(DESTDIR)$(prefix)/bin; done
-	for f in $(ILIBS); do cp $$f $(DESTDIR)$(prefix)/lib; done
+	rm -rf $(DESTDIR)$(prefix)/; mkdir $(DESTDIR)$(prefix)/;
+	
+	rm -rf $(DESTDIR)$(prefix)/bin/; mkdir $(DESTDIR)$(prefix)/bin/;
+	for f in $(IPROGS); do cp $$f.exe $(DESTDIR)$(prefix)/bin/; done
+	
+	rm -rf $(DESTDIR)$(prefix)/lib/; mkdir $(DESTDIR)$(prefix)/lib/;
+	for f in $(ILIBS) liblmdb.def liblmdb.lib; do cp $$f $(DESTDIR)$(prefix)/lib; done
+	
+	rm -rf $(DESTDIR)$(prefix)/include/; mkdir $(DESTDIR)$(prefix)/include/;
 	for f in $(IHDRS); do cp $$f $(DESTDIR)$(prefix)/include; done
+	
+	rm -rf $(DESTDIR)$(prefix)/man/; mkdir $(DESTDIR)$(prefix)/man/;
+	rm -rf $(DESTDIR)$(prefix)/man/man1; mkdir $(DESTDIR)$(prefix)/man/man1;
 	for f in $(IDOCS); do cp $$f $(DESTDIR)$(prefix)/man/man1; done
 
 clean:
-	rm -rf $(PROGS) *.[ao] *.[ls]o *~ testdb
+	rm -rf $(PROGS) *.exe *.dll *.lib *.def *.[ao] *.[ls]o *~ testdb
 
 test:	all
 	rm -rf testdb && mkdir testdb
@@ -50,10 +61,13 @@ test:	all
 liblmdb.a:	mdb.o midl.o
 	ar rs $@ mdb.o midl.o
 
-liblmdb.so:	mdb.lo midl.lo
+liblmdb.dll:	mdb.lo midl.lo
 #	$(CC) $(LDFLAGS) -pthread -shared -Wl,-Bsymbolic -o $@ mdb.o midl.o $(SOLIBS)
-	$(CC) $(LDFLAGS) -pthread -shared -o $@ mdb.lo midl.lo $(SOLIBS)
-
+#	$(CC) $(LDFLAGS) -pthread -shared -o $@ mdb.lo midl.lo $(SOLIBS)
+	$(CC) $(LDFLAGS) -shared -Wl,--output-def=liblmdb.def -Wl,--out-implib=liblmdb.lib -Wl,--dll  mdb.lo midl.lo $(SOLIBS)  -o $@ -s  
+	
+	
+	
 mdb_stat: mdb_stat.o liblmdb.a
 mdb_copy: mdb_copy.o liblmdb.a
 mdb_dump: mdb_dump.o liblmdb.a
